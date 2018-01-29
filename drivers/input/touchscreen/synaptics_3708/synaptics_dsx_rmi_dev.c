@@ -601,18 +601,22 @@ static ssize_t rmidev_read(struct file *filp, char __user *buf,
         return -EBADF;
     }
 
-    if (count == 0)
-        return 0;
+    mutex_lock(&(dev_data->file_mutex));
+
+    if (*f_pos > REG_ADDR_LIMIT) {
+        retval = -EFAULT;
+        goto clean_up;
+    }
 
     if (count > (REG_ADDR_LIMIT - *f_pos))
         count = REG_ADDR_LIMIT - *f_pos;
 
-    if (*f_pos > REG_ADDR_LIMIT)
-        return -EFAULT;
+    if (count == 0) {
+        retval = 0;
+        goto clean_up;
+    }
 
     address = (unsigned short)(*f_pos);
-
-    mutex_lock(&(dev_data->file_mutex));
 
     retval = rmidev_allocate_buffer(count);
     if (retval != 0)
@@ -682,13 +686,20 @@ static ssize_t rmidev_write(struct file *filp, const char __user *buf,
         return -EBADF;
     }
 
-    if (count == 0)
-        return 0;
+    mutex_lock(&(dev_data->file_mutex));
+
+    if (*f_pos > REG_ADDR_LIMIT) {
+        retval = -EFAULT;
+        goto unlock;
+    }
 
     if (count > (REG_ADDR_LIMIT - *f_pos))
         count = REG_ADDR_LIMIT - *f_pos;
 
-    mutex_lock(&(dev_data->file_mutex));
+    if (count == 0) {
+        retval = 0;
+        goto unlock;
+    }
 
     retval = rmidev_allocate_buffer(count);
     if (retval != 0)
