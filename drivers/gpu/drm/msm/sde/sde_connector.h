@@ -356,6 +356,8 @@ struct sde_connector_evt {
  * @bl_scale_ad: BL scale value for AD feature
  * @unset_bl_level: BL level that needs to be set later
  * @allow_bl_update: Flag to indicate if BL update is allowed currently or not
+ * @qsync_mode: Qsync mode, where 0: disabled 1: continuous mode
+ * @qsync_updated: Qsync settings were updated
  * @last_cmd_tx_sts: status of the last command transfer
  */
 struct sde_connector {
@@ -403,6 +405,9 @@ struct sde_connector {
 	u32 unset_bl_level;
 	bool allow_bl_update;
 
+	u32 qsync_mode;
+	bool qsync_updated;
+
 	bool last_cmd_tx_sts;
 };
 
@@ -436,6 +441,14 @@ struct sde_connector {
  */
 #define sde_connector_get_encoder(C) \
 	((C) ? to_sde_connector((C))->encoder : NULL)
+
+/**
+ * sde_connector_qsync_updated - indicates if connector updated qsync
+ * @C: Pointer to drm connector structure
+ * Returns: True if qsync is updated; false otherwise
+ */
+#define sde_connector_qsync_updated(C) \
+	((C) ? to_sde_connector((C))->qsync_updated : 0)
 
 /**
  * sde_connector_get_propinfo - get sde connector's property info pointer
