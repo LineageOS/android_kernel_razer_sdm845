@@ -939,6 +939,7 @@ struct sde_perf_cfg {
  * @wb_formats         Supported formats for wb
  * @vbif_qos_nlvl      number of vbif QoS priority level
  * @ts_prefill_rev     prefill traffic shaper feature revision
+ * @has_qsync	       Supports qsync feature
  * @sui_misr_supported  indicate if secure-ui-misr is supported
  * @sui_block_xin_mask  mask of all the xin-clients to be blocked during
  *                         secure-ui when secure-ui-misr feature is supported
@@ -972,6 +973,7 @@ struct sde_mdss_cfg {
 	bool has_idle_pc;
 	u32 vbif_qos_nlvl;
 	u32 ts_prefill_rev;
+	bool has_qsync;
 
 	bool sui_misr_supported;
 	u32 sui_block_xin_mask;
