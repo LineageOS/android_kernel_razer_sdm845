@@ -72,6 +72,18 @@ enum sde_rm_topology_control {
 };
 
 /**
+ * enum sde_rm_topology_control - HW resource use case in use by connector
+ * @SDE_RM_QSYNC_DISABLED: If set, Qsync feature is supported and in
+ *                              disable state.
+ * @SDE_RM_QSYNC_CONTINUOUS_MODE: If set, Qsync is enabled in continuous
+ *                              mode.
+ */
+enum sde_rm_qsync_modes {
+	SDE_RM_QSYNC_DISABLED,
+	SDE_RM_QSYNC_CONTINUOUS_MODE,
+};
+
+/**
  * struct sde_rm - SDE dynamic hardware resource manager
  * @dev: device handle for event logging purposes
  * @rsvps: list of hardware reservations by each crtc->encoder->connector
