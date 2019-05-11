@@ -1,0 +1,24 @@
+# FIH configuration options
+
+config MACH_FIH
+	bool "FIH board"
+	depends on ARCH_QCOM
+	help
+	  Support for FIH boards.
+
+config MACH_FIH_SDM845
+	bool "FIH SDM845 boards"
+	depends on ARCH_SDM845
+	select MACH_FIH
+	help
+	  Support for FIH SDM845 boards.
+
+menu "FIH board selection"
+
+config MACH_FIH_RC2
+	bool "FIH RC2 board"
+	select MACH_FIH_SDM845
+	help
+	  Support for Razer Phone 2, codenamed RC2.
+
+endmenu
