@@ -1,0 +1,79 @@
+/* Pinctrl */
+#include "sdm845-pinctrl.dtsi"
+#include "pm845-pinctrl.dtsi"
+#include "pmi8998-pinctrl.dtsi"
+#include "pm8005-pinctrl.dtsi"
+
+#include "sdm845-platform.dtsi"
+#include "sdm845-pmic.dtsi"
+
+/* Battery */
+#include "battery.dtsi"
+
+/* Wireless Charger - IDT,P9221 */
+#include "wireless-charging-P9221.dtsi"
+
+/* Touch */
+#include "touch_synaptics_3708.dtsi"
+
+/* Display */
+#include "display.dtsi"
+
+/* Haptics */
+#include "vibrator.dtsi"
+
+/* NFC */
+#include "nfc_nq_nci.dtsi"
+
+/* Audio */
+#include "sdm845-audio.dtsi"
+
+/* Flash LED */
+#include "flashled-lm3644.dtsi"
+
+/* Fingerprint */
+#include "fingerprint-fpc1235.dtsi"
+
+/* Camera */
+#include "sdm845-camera.dtsi"
+
+/* Wifi */
+#include "wifi-module.dtsi"
+
+/* LED */
+#include "led-lp5523.dtsi"
+
+/* USB RE-DRIVER */
+#include "redriver-tusb544.dtsi"
+
+/* Sensor LVS2A power control */
+#include "sensor_power.dtsi"
+
+&pmi8998_lsid1 {
+	qcom,leds@d000 {
+		status = "disabled";
+	};
+};
+
+&thermal_zones {
+	soc {
+		cooling-maps {
+			soc_cpu4 {
+				cooling-device =
+					<&CPU4 19 19>;
+			};
+			soc_cpu5 {
+				cooling-device =
+					<&CPU5 19 19>;
+			};
+			soc_map6 {
+				cooling-device =
+					<&CPU6 19 19>;
+			};
+			soc_map7 {
+				cooling-device =
+					<&CPU7 19 19>;
+			};
+		};
+	};
+};
