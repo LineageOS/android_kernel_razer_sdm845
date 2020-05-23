@@ -32,6 +32,13 @@ config FIH_APR
 	help
 	  Support FIH apr virtual file
 
+config FIH_BATTERY
+	bool "FIH battery"
+	depends on MACH_FIH
+	default n
+	help
+	  Support FIH battery
+
 config FIH_GPIO
 	bool "FIH gpio"
 	depends on MACH_FIH

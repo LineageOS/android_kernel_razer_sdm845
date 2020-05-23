@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 Razer Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,6 +20,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/extcon.h>
 #include "storm-watch.h"
+#include <linux/msm_drm_notify.h>
 
 enum print_reason {
 	PR_INTERRUPT	= BIT(0),
@@ -59,6 +61,7 @@ enum print_reason {
 #define SW_QC3_VOTER			"SW_QC3_VOTER"
 #define AICL_RERUN_VOTER		"AICL_RERUN_VOTER"
 #define LEGACY_UNKNOWN_VOTER		"LEGACY_UNKNOWN_VOTER"
+#define SS_ADAPTER_VOTER		"SS_ADAPTER_VOTER"
 #define CC2_WA_VOTER			"CC2_WA_VOTER"
 #define QNOVO_VOTER			"QNOVO_VOTER"
 #define BATT_PROFILE_VOTER		"BATT_PROFILE_VOTER"
@@ -274,6 +277,11 @@ struct smb_charger {
 	/* notifiers */
 	struct notifier_block	nb;
 
+	/* Thermal charge limiting */
+	struct notifier_block	dsi_panel_notif;
+	bool 			screen_on;
+	struct mutex 		thermal_charge_limit_lock;
+
 	/* parallel charging */
 	struct parallel_params	pl;
 
@@ -317,6 +325,10 @@ struct smb_charger {
 	struct work_struct	legacy_detection_work;
 	struct delayed_work	uusb_otg_work;
 	struct delayed_work	bb_removal_work;
+#if defined(CONFIG_FIH_BATTERY)
+	struct delayed_work	info_update_work;
+	struct delayed_work	charging_check_work;
+#endif /* CONFIG_FIH_BATTERY */
 
 	/* cached status */
 	int			voltage_min_uv;
@@ -385,6 +397,14 @@ struct smb_charger {
 	int			pulse_cnt;
 
 	int			die_health;
+
+#if defined(CONFIG_FIH_BATTERY)
+	int			*info_update_ms;
+	int			*reg_dump_mask;
+	bool			charging_check_en;
+	bool			forecast_charging_en;
+	bool			forecast_charging;
+#endif /* CONFIG_FIH_BATTERY */
 };
 
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val);
@@ -542,6 +562,10 @@ int smblib_disable_hw_jeita(struct smb_charger *chg, bool disable);
 int smblib_rerun_aicl(struct smb_charger *chg);
 int smblib_set_icl_current(struct smb_charger *chg, int icl_ua);
 int smblib_get_icl_current(struct smb_charger *chg, int *icl_ua);
+#if defined(CONFIG_FIH_BATTERY)
+int smblib_set_icl_current_override(struct smb_charger *chg, int icl_ua);
+int smblib_get_icl_current_override(struct smb_charger *chg, int *icl_ua);
+#endif /* CONFIG_FIH_BATTERY */
 int smblib_get_charge_current(struct smb_charger *chg, int *total_current_ua);
 int smblib_get_prop_pr_swap_in_progress(struct smb_charger *chg,
 				union power_supply_propval *val);

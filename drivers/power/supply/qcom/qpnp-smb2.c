@@ -1,4 +1,6 @@
 /* Copyright (c) 2016-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018 Razer Inc.
+ * Copyright (c) 2018 Paranoid Android.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -171,6 +173,9 @@ struct smb_dt_props {
 	bool	auto_recharge_soc;
 	int	wd_bark_time;
 	bool	no_pd;
+#if defined(CONFIG_FIH_BATTERY)
+	int	input_priority;
+#endif /* CONFIG_FIH_BATTERY */
 };
 
 struct smb2 {
@@ -198,6 +203,18 @@ static int __audio_headset_drp_wait_ms = 100;
 module_param_named(
 	audio_headset_drp_wait_ms, __audio_headset_drp_wait_ms, int, 0600
 );
+
+#if defined(CONFIG_FIH_BATTERY)
+static int __info_update_ms;
+module_param_named(
+	info_update_ms, __info_update_ms, int, 0600
+);
+
+static int __reg_dump_mask;
+module_param_named(
+	reg_dump_mask, __reg_dump_mask, int, 0600
+);
+#endif /* CONFIG_FIH_BATTERY */
 
 #define MICRO_1P5A		1500000
 #define MICRO_P1A		100000
@@ -347,6 +364,18 @@ static int smb2_parse_dt(struct smb2 *chip)
 	chg->ufp_only_mode = of_property_read_bool(node,
 					"qcom,ufp-only-mode");
 
+#if defined(CONFIG_FIH_BATTERY)
+	rc = of_property_read_u32(node, "fih,info-update-ms", chg->info_update_ms);
+
+	rc = of_property_read_u32(node, "fih,input-priority", &chip->dt.input_priority);
+	if (rc < 0 || (chip->dt.input_priority < 0 || chip->dt.input_priority > 1))
+		chip->dt.input_priority = -EINVAL;
+
+	chg->charging_check_en = of_property_read_bool(node, "fih,charging-check-enable");
+
+	chg->forecast_charging_en = of_property_read_bool(node, "fih,forecast-charging-enable");
+#endif /* CONFIG_FIH_BATTERY */
+
 	return 0;
 }
 
@@ -381,6 +410,9 @@ static enum power_supply_property smb2_usb_props[] = {
 	POWER_SUPPLY_PROP_SDP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_CONNECTOR_TYPE,
 	POWER_SUPPLY_PROP_MOISTURE_DETECTED,
+#if defined(CONFIG_FIH_BATTERY)
+	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+#endif /* CONFIG_FIH_BATTERY */
 };
 
 static int smb2_usb_get_prop(struct power_supply *psy,
@@ -506,6 +538,11 @@ static int smb2_usb_get_prop(struct power_supply *psy,
 		val->intval = get_client_vote(chg->disable_power_role_switch,
 					      MOISTURE_VOTER);
 		break;
+#if defined(CONFIG_FIH_BATTERY)
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		rc = smblib_get_icl_current_override(chg, &val->intval);
+		break;
+#endif /* CONFIG_FIH_BATTERY */
 	default:
 		pr_err("get prop %d is not supported in usb\n", psp);
 		rc = -EINVAL;
@@ -576,6 +613,11 @@ static int smb2_usb_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_SDP_CURRENT_MAX:
 		rc = smblib_set_prop_sdp_current_max(chg, val);
 		break;
+#if defined(CONFIG_FIH_BATTERY)
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		rc = smblib_set_icl_current_override(chg, val->intval);
+		break;
+#endif /* CONFIG_FIH_BATTERY */
 	default:
 		pr_err("set prop %d is not supported\n", psp);
 		rc = -EINVAL;
@@ -592,6 +634,9 @@ static int smb2_usb_prop_is_writeable(struct power_supply *psy,
 {
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CTM_CURRENT_MAX:
+#if defined(CONFIG_FIH_BATTERY)
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+#endif /* CONFIG_FIH_BATTERY */
 		return 1;
 	default:
 		break;
@@ -1263,6 +1308,7 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_STEP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_SW_JEITA_ENABLED:
 	case POWER_SUPPLY_PROP_DIE_HEALTH:
+	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		return 1;
 	default:
 		break;
@@ -1663,11 +1709,25 @@ static int smb2_init_hw(struct smb2 *chip)
 	 */
 	rc = smblib_masked_write(chg, USBIN_AICL_OPTIONS_CFG_REG,
 			USBIN_AICL_START_AT_MAX_BIT
+				/*
+				 * Fixed [RC2-257] DUT auto discharging after charging 4 mins.
+				 * Not to suspend USBIN on collapse to ICL_MIN (25mA)
+				 */
+				| SUSPEND_ON_COLLAPSE_USBIN_BIT
 				| USBIN_AICL_ADC_EN_BIT, 0);
 	if (rc < 0) {
-		dev_err(chg->dev, "Couldn't configure AICL rc=%d\n", rc);
+		dev_err(chg->dev, "Couldn't configure USBIN_AICL rc=%d\n", rc);
 		return rc;
 	}
+
+	//{DCIN_AICL disable
+	rc = smblib_masked_write(chg, DCIN_AICL_OPTIONS_CFG_REG,
+			DCIN_AICL_EN_BIT, 0);
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't configure DCIN_AICL rc=%d\n", rc);
+		return rc;
+	}
+	//}DCIN_AICL disable
 
 	/* Configure charge enable for software control; active high */
 	rc = smblib_masked_write(chg, CHGR_CFG2_REG,
@@ -1815,6 +1875,11 @@ static int smb2_init_hw(struct smb2 *chip)
 		return rc;
 	}
 
+	rc = smblib_masked_write(chg, USBIN_OPTIONS_2_CFG_REG, 0x20, 0);
+	if (rc < 0)
+		dev_err(chg->dev, "Couldn't configure dcd timeout option rc=%d\n",
+			rc);
+
 	rc = smblib_read(chg, USBIN_OPTIONS_2_CFG_REG, &chg->float_cfg);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't read float charger options rc=%d\n",
@@ -1895,6 +1960,27 @@ static int smb2_init_hw(struct smb2 *chip)
 			return rc;
 		}
 	}
+
+#if defined(CONFIG_FIH_BATTERY)
+	/* Configure input priority */
+	switch (chip->dt.input_priority) {
+	case 0:
+		rc = smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
+				INPUT_PRIORITY_BIT, 0);
+		break;
+	case 1:
+		rc = smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
+				INPUT_PRIORITY_BIT, INPUT_PRIORITY_BIT);
+		break;
+	default:
+		rc = 0;
+		break;
+	}
+	if (rc < 0) {
+		dev_err(chg->dev, "Couldn't configure input priority rc=%d\n", rc);
+		return rc;
+	}
+#endif /* CONFIG_FIH_BATTERY */
 
 	return rc;
 }
@@ -2408,6 +2494,10 @@ static int smb2_probe(struct platform_device *pdev)
 	chg->die_health = -EINVAL;
 	chg->name = "PMI";
 	chg->audio_headset_drp_wait_ms = &__audio_headset_drp_wait_ms;
+#if defined(CONFIG_FIH_BATTERY)
+	chg->info_update_ms = &__info_update_ms;
+	chg->reg_dump_mask = &__reg_dump_mask;
+#endif /* CONFIG_FIH_BATTERY */
 
 	chg->regmap = dev_get_regmap(chg->dev->parent, NULL);
 	if (!chg->regmap) {
@@ -2557,6 +2647,7 @@ static int smb2_probe(struct platform_device *pdev)
 	pr_info("QPNP SMB2 probed successfully usb:present=%d type=%d batt:present = %d health = %d charge = %d\n",
 		usb_present, chg->real_charger_type,
 		batt_present, batt_health, batt_charge_type);
+
 	return rc;
 
 cleanup:
