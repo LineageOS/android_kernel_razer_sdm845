@@ -998,8 +998,10 @@ bool drm_mode_equal_no_clocks_no_stereo(const struct drm_display_mode *mode1,
 	    mode1->vtotal == mode2->vtotal &&
 	    mode1->vscan == mode2->vscan &&
 	    mode1->picture_aspect_ratio == mode2->picture_aspect_ratio &&
-	    (mode1->flags & ~DRM_MODE_FLAG_3D_MASK) ==
-	     (mode2->flags & ~DRM_MODE_FLAG_3D_MASK))
+	    ((mode1->flags & ~DRM_MODE_FLAG_3D_MASK) ==
+	     (mode2->flags & ~DRM_MODE_FLAG_3D_MASK)) &&
+	    ((mode1->flags & ~DRM_MODE_FLAG_DSC_BPC_MASK) ==
+	     (mode2->flags & ~DRM_MODE_FLAG_DSC_BPC_MASK)))
 		return true;
 
 	return false;
