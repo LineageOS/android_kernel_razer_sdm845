@@ -41,8 +41,8 @@
 #define MSM_MODE_FLAG_SEAMLESS_DMS			(1<<2)
 /* Request to switch the fps */
 #define MSM_MODE_FLAG_SEAMLESS_VRR			(1<<3)
-/* Request to switch the bit clk */
-#define MSM_MODE_FLAG_SEAMLESS_DYN_CLK			(1<<4)
+/* Request to update panel timings  */
+#define MSM_MODE_FLAG_SEAMLESS_PANEL_DMS		(1<<4)
 
 /*
  * We need setting some flags in bridge, and using them in encoder. Add them in
@@ -191,6 +191,12 @@ static inline bool msm_is_mode_seamless_dms(const struct drm_display_mode *mode)
 		: false;
 }
 
+static inline bool msm_is_mode_seamless_panel_dms(const struct drm_display_mode *mode)
+{
+	return mode ? (mode->private_flags & MSM_MODE_FLAG_SEAMLESS_PANEL_DMS)
+		: false;
+}
+
 static inline bool msm_is_mode_dynamic_fps(const struct drm_display_mode *mode)
 {
 	return ((mode->flags & DRM_MODE_FLAG_SEAMLESS) &&
@@ -200,13 +206,6 @@ static inline bool msm_is_mode_dynamic_fps(const struct drm_display_mode *mode)
 static inline bool msm_is_mode_seamless_vrr(const struct drm_display_mode *mode)
 {
 	return mode ? (mode->private_flags & MSM_MODE_FLAG_SEAMLESS_VRR)
-		: false;
-}
-
-static inline bool msm_is_mode_seamless_dyn_clk(
-					const struct drm_display_mode *mode)
-{
-	return mode ? (mode->private_flags & MSM_MODE_FLAG_SEAMLESS_DYN_CLK)
 		: false;
 }
 
