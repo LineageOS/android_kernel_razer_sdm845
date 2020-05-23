@@ -72,6 +72,9 @@ static int enable_lmk = 1;
 module_param_named(enable_lmk, enable_lmk, int, 0644);
 
 static u32 lowmem_debug_level = 1;
+
+static uint32_t lmk_counter = 0;
+
 static short lowmem_adj[6] = {
 	0,
 	1,
@@ -812,6 +815,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		rem += selected_tasksize;
 
 		rcu_read_unlock();
+		lmk_counter++;
 		/* give the system time to free up the memory */
 		msleep_interruptible(20);
 		trace_almk_shrink(selected_tasksize, ret,
@@ -1012,3 +1016,4 @@ module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
 #ifdef CONFIG_ANDROID_LMK_NOTIFY_TRIGGER
 module_param_named(notify_trigger, lowmem_minfree_notif_trigger, uint, 0644);
 #endif
+module_param_named(lmkcounter, lmk_counter, uint, S_IRUGO);
