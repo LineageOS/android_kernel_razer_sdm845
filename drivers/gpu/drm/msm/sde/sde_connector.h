@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018, Razer Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -292,6 +293,11 @@ struct sde_connector_ops {
 	 * Returns: v_front_porch on success error-code on failure
 	 */
 	int (*get_panel_vfp)(void *display, int h_active, int v_active);
+
+	/**
+	 * display_input_boost
+	 */
+	int (*display_input_boost)(void *display, bool enable_boost);
 };
 
 /**

@@ -591,11 +591,15 @@ static int _sde_connector_update_dirty_properties(
 		case CONNECTOR_PROP_AD_BL_SCALE:
 			_sde_connector_update_bl_scale(c_conn);
 			break;
-		case CONNECTOR_PROP_QSYNC_MODE:
-			c_conn->qsync_updated = true;
-			c_conn->qsync_mode = sde_connector_get_property(
+		case CONNECTOR_PROP_QSYNC_MODE: {
+			uint32_t new_mode = sde_connector_get_property(
 				connector->state, CONNECTOR_PROP_QSYNC_MODE);
+			if (new_mode != c_conn->qsync_mode) {
+				c_conn->qsync_updated = true;
+				c_conn->qsync_mode = new_mode;
+			}
 			break;
+		}
 		default:
 			/* nothing to do for most properties */
 			break;
