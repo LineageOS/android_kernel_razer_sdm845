@@ -80,6 +80,7 @@ int xhci_handshake_check_state(struct xhci_hcd *xhci,
 		void __iomem *ptr, u32 mask, u32 done, int usec)
 {
 	u32	result;
+	unsigned long timeout = jiffies + usecs_to_jiffies(usec);
 
 	do {
 		result = readl_relaxed(ptr);
@@ -91,7 +92,7 @@ int xhci_handshake_check_state(struct xhci_hcd *xhci,
 			return 0;
 		udelay(1);
 		usec--;
-	} while (usec > 0);
+	} while ((usec > 0) && time_before(jiffies, timeout));
 	return -ETIMEDOUT;
 }
 
