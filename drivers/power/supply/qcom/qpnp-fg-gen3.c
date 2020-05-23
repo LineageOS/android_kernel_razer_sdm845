@@ -170,6 +170,7 @@ static void fg_encode_current(struct fg_sram_param *sp,
 	enum fg_sram_param_id id, int val_ma, u8 *buf);
 static void fg_encode_default(struct fg_sram_param *sp,
 	enum fg_sram_param_id id, int val, u8 *buf);
+static const char *fg_get_cycle_count(struct fg_chip *chip);
 
 static struct fg_irq_info fg_irqs[FG_IRQ_MAX];
 
@@ -3238,7 +3239,7 @@ static void profile_load_work(struct work_struct *work)
 				struct fg_chip,
 				profile_load_work.work);
 	u8 buf[2], val;
-	int rc;
+	int rc, msoc = -1, volt_uv = -1, batt_temp = -1;
 
 	vote(chip->awake_votable, PROFILE_LOAD, true, 0);
 
@@ -3333,6 +3334,7 @@ done:
 		chip->profile_loaded = true;
 
 	fg_dbg(chip, FG_STATUS, "profile loaded successfully");
+	pr_info("profile loaded successfully\n");
 out:
 	chip->soc_reporting_ready = true;
 	vote(chip->awake_votable, ESR_FCC_VOTER, true, 0);
@@ -3342,6 +3344,16 @@ out:
 		fg_stay_awake(chip, FG_STATUS_NOTIFY_WAKE);
 		schedule_work(&chip->status_change_work);
 	}
+
+	rc = fg_get_battery_voltage(chip, &volt_uv);
+	if (!rc)
+		rc = fg_get_prop_capacity(chip, &msoc);
+
+	if (!rc)
+		rc = fg_get_battery_temp(chip, &batt_temp);
+	pr_info("Battery SOC:%d voltage: %duV temp: %d id: %dKOhms\n",
+				msoc, volt_uv, batt_temp, chip->batt_id_ohms / 1000);
+
 }
 
 static void sram_dump_work(struct work_struct *work)
