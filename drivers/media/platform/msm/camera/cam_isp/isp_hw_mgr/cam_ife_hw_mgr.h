@@ -126,7 +126,6 @@ struct cam_ife_hw_mgr_debug {
  * @is_rdi_only_context         flag to specify the context has only rdi
  *                              resource
  * @config_done_complete        indicator for configuration complete
- * @init_done                   indicate whether init hw is done
  * @dual_ife_irq_mismatch_cnt   irq mismatch count value per core, used for
  *                              dual VFE
  */
@@ -162,7 +161,6 @@ struct cam_ife_hw_mgr_ctx {
 	atomic_t                        overflow_pending;
 	uint32_t                        is_rdi_only_context;
 	struct completion               config_done_complete;
-	bool                            init_done;
 	uint32_t                        dual_ife_irq_mismatch_cnt;
 };
 
