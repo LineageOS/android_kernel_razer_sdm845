@@ -15,6 +15,9 @@
 #include <linux/of.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
+#ifdef CONFIG_MACH_FIH_RC2
+#include <linux/gpio.h>
+#endif
 
 #include "dsi_pwr.h"
 
@@ -170,6 +173,12 @@ static int dsi_pwr_enable_vregs(struct dsi_regulator_info *regs, bool enable)
 		}
 	} else {
 		for (i = (regs->count - 1); i >= 0; i--) {
+#ifdef CONFIG_MACH_FIH_RC2
+			if (i == 0 && !strcmp(regs->vregs[i].vreg_name, "wqhd-vddio")) {
+				gpio_set_value(6, 0); // Reset pin
+			}
+#endif
+
 			if (regs->vregs[i].pre_off_sleep)
 				msleep(regs->vregs[i].pre_off_sleep);
 
