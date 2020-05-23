@@ -50,6 +50,9 @@ MODULE_DEVICE_TABLE(of, msm_match_table);
 #define MAX_BUFFER_SIZE			(320)
 #define WAKEUP_SRC_TIMEOUT		(2000)
 #define MAX_RETRY_COUNT			3
+/* For creating "/sys/devices/platform/pn547_attr/nfc_irq" for
+   get_irq_status() needed in nfc.c in FTM implementation */
+#define FIH_FTM_CUSTOMIZED
 
 struct nqx_dev {
 	wait_queue_head_t	read_wq;
@@ -100,6 +103,32 @@ static void nqx_init_stat(struct nqx_dev *nqx_dev)
 {
 	nqx_dev->count_irq = 0;
 }
+
+#ifdef FIH_FTM_CUSTOMIZED
+static ssize_t pn547_irq(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct nqx_dev *nqx_dev = i2c_get_clientdata(client);
+	int irq_status = 0;
+
+	irq_status = gpio_get_value(nqx_dev->irq_gpio);
+	printk("%s : irq_gpio = %d\n", __func__, irq_status);
+	sprintf(buf, "%d\n", irq_status);
+
+	return strlen(buf);
+}
+
+static DEVICE_ATTR(nfc_irq, 0644, pn547_irq, NULL);
+
+static struct attribute *pn547_attributes[] = {
+        &dev_attr_nfc_irq.attr,
+        NULL
+};
+
+static struct attribute_group pn547_attribute_group = {
+	.attrs = pn547_attributes
+};
+#endif
 
 static void nqx_disable_irq(struct nqx_dev *nqx_dev)
 {
@@ -835,6 +864,10 @@ err_nfcc_reset_failed:
 		dev_dbg(&client->dev,
 		"%s: ## NFCC == NQ310 ##\n", __func__);
 		break;
+	case NFCC_NQ_310_B0:
+		dev_dbg(&client->dev,
+		"%s: ## NFCC == NQ310 B0##\n", __func__);
+		break;
 	case NFCC_NQ_330:
 		dev_dbg(&client->dev,
 		"%s: ## NFCC == NQ330 ##\n", __func__);
@@ -1153,6 +1186,20 @@ static int nqx_probe(struct i2c_client *client,
 	nqx_dev->clkreq_gpio = platform_data->clkreq_gpio;
 	nqx_dev->pdata = platform_data;
 
+#ifdef FIH_FTM_CUSTOMIZED
+	r = sysfs_create_group(&client->dev.kobj, &pn547_attribute_group);
+	if (r) {
+		pr_err("%s : sysfs registration failed, error %d\n", __func__, r);
+		goto err_create_link;
+	}
+
+	r = sysfs_create_link(client->dev.kobj.parent->parent->parent->parent, &client->dev.kobj, "pn547_attr");
+	if (r) {
+		pr_err("%s : sysfs create link failed, error %d\n", __func__, r);
+		goto err_create_link;
+	}
+#endif
+
 	/* init mutex and queues */
 	init_waitqueue_head(&nqx_dev->read_wq);
 	mutex_init(&nqx_dev->read_mutex);
@@ -1183,13 +1230,17 @@ static int nqx_probe(struct i2c_client *client,
 	 * present before attempting further hardware initialisation.
 	 *
 	 */
+	pr_info("%s: nfcc hw check\n", __func__);
+//Avoid probe fail while in fw download mode begin
 	r = nfcc_hw_check(client, nqx_dev);
 	if (r) {
 		/* make sure NFCC is not enabled */
 		gpio_set_value(platform_data->en_gpio, 0);
+		dev_err(&client->dev,"%s: nfcc_hw_check fail\n", __func__);
 		/* We don't think there is hardware switch NFC OFF */
-		goto err_request_hw_check_failed;
+		//goto err_request_hw_check_failed;
 	}
+//Avoid probe fail while in fw download mode end
 
 	/* Register reboot notifier here */
 	r = register_reboot_notifier(&nfcc_notifier);
@@ -1233,6 +1284,10 @@ err_request_irq_failed:
 	misc_deregister(&nqx_dev->nqx_device);
 err_misc_register:
 	mutex_destroy(&nqx_dev->read_mutex);
+#ifdef FIH_FTM_CUSTOMIZED
+err_create_link:
+	sysfs_remove_group(&client->dev.kobj, &pn547_attribute_group);
+#endif
 err_clkreq_gpio:
 	gpio_free(platform_data->clkreq_gpio);
 err_ese_gpio:
