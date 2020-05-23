@@ -1,3 +1,13 @@
+ifeq ($(CONFIG_MACH_FIH_RC2),y)
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+	dtbo-$(CONFIG_ARCH_SDM845) += \
+		sdm845-v2-mtp-rc2-pvt-overlay.dtbo \
+		sdm845-v2-mtp-rc2-mp-overlay.dtbo
+
+sdm845-v2-mtp-rc2-pvt-overlay.dtbo-base := sdm845-v2-rc2.dtb
+sdm845-v2-mtp-rc2-mp-overlay.dtbo-base := sdm845-v2-rc2.dtb
+endif
+else
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8016-sbc.dtb msm8916-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8996-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8096-db820c.dtb
@@ -113,6 +123,7 @@ dtb-$(CONFIG_ARCH_SDM845) += sdm845-sim.dtb \
 	sdm845-interposer-sdm670-cdp.dtb \
 	sdm845-v2.1-rb3.dtb \
 	sdm845-v2.1-mtp.dtb
+endif
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
