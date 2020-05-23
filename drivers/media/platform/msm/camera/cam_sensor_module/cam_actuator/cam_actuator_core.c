@@ -19,6 +19,33 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
+#ifdef CONFIG_MACH_FIH_RC2
+extern unsigned int g_wide_af_nvl[60];
+
+int cam_actuator_i2c_write(struct camera_io_master *io_master_info,
+		uint32_t addr, uint32_t data,
+		enum camera_sensor_i2c_type addr_type,
+		enum camera_sensor_i2c_type data_type,
+		unsigned short delay)
+{
+	int rc = 0;
+	struct cam_sensor_i2c_reg_setting write_setting;
+	struct cam_sensor_i2c_reg_array i2c_reg_array;
+
+	i2c_reg_array.reg_addr = addr;
+	i2c_reg_array.reg_data = data;
+	i2c_reg_array.delay = 1;
+	write_setting.reg_setting = &i2c_reg_array;
+	write_setting.addr_type = addr_type;
+	write_setting.data_type = data_type;
+	write_setting.size = 1;
+	write_setting.delay = delay;
+
+	rc = camera_io_dev_write(io_master_info, &write_setting);
+	return rc;
+}
+#endif
+
 int32_t cam_actuator_construct_default_power_setting(
 	struct cam_sensor_power_ctrl_t *power_info)
 {
@@ -35,7 +62,11 @@ int32_t cam_actuator_construct_default_power_setting(
 	power_info->power_setting[0].seq_type = SENSOR_VAF;
 	power_info->power_setting[0].seq_val = CAM_VAF;
 	power_info->power_setting[0].config_val = 1;
+#ifndef CONFIG_MACH_FIH_RC2
 	power_info->power_setting[0].delay = 2;
+#else
+	power_info->power_setting[0].delay = 8;
+#endif
 
 	power_info->power_down_setting_size = 1;
 	power_info->power_down_setting =
@@ -134,6 +165,14 @@ static int32_t cam_actuator_power_down(struct cam_actuator_ctrl_t *a_ctrl)
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_MACH_FIH_RC2
+	// NVL only for wide AF (BU64753) exit should be set the power off command
+	if (a_ctrl->io_master_info.cci_client->sid == (0xEC >> 1))
+		cam_actuator_i2c_write(&(a_ctrl->io_master_info), 0x07, 0x0000,
+				CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_WORD, 10);
+#endif
+
 	soc_private =
 		(struct cam_actuator_soc_private *)a_ctrl->soc_info.soc_private;
 	power_info = &soc_private->power_info;
@@ -153,6 +192,58 @@ static int32_t cam_actuator_power_down(struct cam_actuator_ctrl_t *a_ctrl)
 
 	return rc;
 }
+
+#ifdef CONFIG_MACH_FIH_RC2
+// NVL only for wide AF (BU64753) recover sequence
+int32_t cam_actuator_wide_af_nvl(struct camera_io_master *io_master_info,
+		struct i2c_settings_list *i2c_list)
+{
+	int32_t rc = 0;
+	int i = 0, j = 0;
+
+	for (j = 0; j < 3; j++) {
+		cam_actuator_i2c_write(io_master_info, 0x52, 0x8000,
+				CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_WORD, 0);
+		for (i = 0; i < 30; i++) {
+			if (i < 15)
+				cam_actuator_i2c_write(io_master_info, 0x50,
+						i,
+						CAMERA_SENSOR_I2C_TYPE_BYTE,
+						CAMERA_SENSOR_I2C_TYPE_WORD, 0);
+			else
+				cam_actuator_i2c_write(io_master_info, 0x50,
+						i + 18,
+						CAMERA_SENSOR_I2C_TYPE_BYTE,
+						CAMERA_SENSOR_I2C_TYPE_WORD, 0);
+
+			cam_actuator_i2c_write(io_master_info, 0x51,
+					g_wide_af_nvl[i],
+					CAMERA_SENSOR_I2C_TYPE_BYTE,
+					CAMERA_SENSOR_I2C_TYPE_WORD, 0);
+		}
+		cam_actuator_i2c_write(io_master_info, 0x07, 0x0000,
+				CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_WORD, 0);
+		cam_actuator_i2c_write(io_master_info, 0x07, 0x0080,
+				CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_WORD, 10);
+
+		io_master_info->cci_client->sid = 0x76;
+		rc = camera_io_dev_poll(io_master_info, 0xF7, 0x0004, 0,
+				CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_WORD, 10);
+
+		if (rc < 0) {
+			CAM_ERR(CAM_ACTUATOR, "i2c poll apply setting Fail: %d",
+					rc);
+			return rc;
+		} else if (rc == 0)
+			break;
+	}
+	return rc;
+}
+#endif
 
 static int32_t cam_actuator_i2c_modes_util(
 	struct camera_io_master *io_master_info,
@@ -209,6 +300,17 @@ static int32_t cam_actuator_i2c_modes_util(
 				return rc;
 			}
 		}
+
+#ifdef CONFIG_MACH_FIH_RC2
+		// NVL only for wide AF (BU64753) recover sequence
+		// rc == 1, i2c read success but compared value not matching
+		// sid == 0xEC >> 1, WIDE AF ic
+		// addr == 0xF7, read the AF checksum
+		if ((rc == 1) &&
+		    (io_master_info->cci_client->sid == (0xEC >> 1)) &&
+		    (i2c_list->i2c_settings.reg_setting[0].reg_addr == 0xF7))
+			cam_actuator_wide_af_nvl(io_master_info, i2c_list);
+#endif
 	}
 
 	return rc;
@@ -268,6 +370,42 @@ int32_t cam_actuator_apply_settings(struct cam_actuator_ctrl_t *a_ctrl,
 		rc = cam_actuator_i2c_modes_util(
 			&(a_ctrl->io_master_info),
 			i2c_list);
+
+#ifdef CONFIG_MACH_FIH_RC2
+		// NVL only for wide AF (BU64753) recover sequence
+		// rc == -110, ic not responding
+		// sid == 0xEC >> 1, WIDE AF ic
+		if (((rc == -22) || (rc == -110)) &&
+		    (a_ctrl->io_master_info.cci_client->sid == (0xEC >> 1))) {
+			int i = 0;
+			uint16_t slave_addr[4] = { 0xEc, 0x1C, 0x18, 0xE8 };
+			for (i = 0; i < 4; i++) {
+				a_ctrl->io_master_info.cci_client->sid =
+						slave_addr[i]>>1;
+				rc = cam_actuator_i2c_write(
+						&(a_ctrl->io_master_info),
+						0x07, 0x0000,
+						CAMERA_SENSOR_I2C_TYPE_BYTE,
+						CAMERA_SENSOR_I2C_TYPE_WORD,
+						0);
+				rc = cam_actuator_i2c_write(
+						&(a_ctrl->io_master_info),
+						0x07, 0x0080,
+						CAMERA_SENSOR_I2C_TYPE_BYTE,
+						CAMERA_SENSOR_I2C_TYPE_WORD,
+						10);
+
+				if (rc == 0) {
+					rc = cam_actuator_wide_af_nvl(
+						&(a_ctrl->io_master_info),
+						i2c_list);
+					if (rc >= 0)
+						break;
+				}
+			}
+		}
+#endif
+
 		if (rc < 0) {
 			CAM_ERR(CAM_ACTUATOR,
 				"Failed to apply settings: %d",
