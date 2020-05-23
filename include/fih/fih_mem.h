@@ -1,0 +1,12 @@
+#ifndef __FIH_MEM_H__
+#define __FIH_MEM_H__
+
+/* NV */
+#define FIH_MEM_NV_MDM_ADDR      0xAF000000
+#define FIH_MEM_NV_MDM_SIZE      0x00800000
+
+/* SENSOR:ALS */
+#define FIH_MEM_SENSOR_ALS_ADDR  0xAFA82000
+#define FIH_MEM_SENSOR_ALS_SIZE  0x00001000
+
+#endif

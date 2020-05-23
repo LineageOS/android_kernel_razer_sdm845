@@ -22,3 +22,42 @@ config MACH_FIH_RC2
 	  Support for Razer Phone 2, codenamed RC2.
 
 endmenu
+
+menu "FIH driver selection"
+
+config FIH_APR
+	bool "FIH apr"
+	depends on MACH_FIH
+	default n
+	help
+	  Support FIH apr virtual file
+
+config FIH_GPIO
+	bool "FIH gpio"
+	depends on MACH_FIH
+	default n
+	help
+	  Support FIH gpio function
+
+config FIH_INFO
+	bool "FIH info"
+	depends on MACH_FIH
+	default n
+	help
+	  Support FIH info virtual file
+
+config FIH_MFD
+	bool "FIH mfd"
+	depends on MACH_FIH
+	default n
+	help
+	  Support FIH mfd virtual file
+
+config FIH_SENSOR
+	bool "FIH sensor"
+	depends on MACH_FIH
+	default n
+	help
+	  Support FIH sensor virtual file
+
+endmenu
