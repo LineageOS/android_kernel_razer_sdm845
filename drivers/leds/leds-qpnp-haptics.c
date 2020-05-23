@@ -1255,7 +1255,10 @@ static int qpnp_haptics_auto_mode_config(struct hap_chip *chip, int time_ms)
 			ares_cfg.lra_qwd_drive_duration = 0;
 			ares_cfg.calibrate_at_eop = 0;
 		} else {
-			ares_cfg.auto_res_mode = HAP_AUTO_RES_ZXD_EOP;
+			if (chip->ares_cfg.auto_res_mode != HAP_AUTO_RES_NONE)
+				ares_cfg.auto_res_mode = HAP_AUTO_RES_QWD;
+			else
+				ares_cfg.auto_res_mode = HAP_AUTO_RES_NONE;
 			ares_cfg.lra_qwd_drive_duration = -EINVAL;
 			ares_cfg.calibrate_at_eop = -EINVAL;
 		}
@@ -1284,7 +1287,10 @@ static int qpnp_haptics_auto_mode_config(struct hap_chip *chip, int time_ms)
 			ares_cfg.lra_qwd_drive_duration = 0;
 			ares_cfg.calibrate_at_eop = 1;
 		} else {
-			ares_cfg.auto_res_mode = HAP_AUTO_RES_QWD;
+			if (chip->ares_cfg.auto_res_mode != HAP_AUTO_RES_NONE)
+				ares_cfg.auto_res_mode = HAP_AUTO_RES_ZXD_EOP;
+			else
+				ares_cfg.auto_res_mode = HAP_AUTO_RES_NONE;
 			ares_cfg.lra_res_cal_period = HAP_RES_CAL_PERIOD_MAX;
 			ares_cfg.lra_qwd_drive_duration = -EINVAL;
 			ares_cfg.calibrate_at_eop = -EINVAL;
