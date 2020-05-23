@@ -102,6 +102,10 @@ extern "C" {
 #define  DRM_MODE_FLAG_PIC_AR_256_135 \
 			(DRM_MODE_PICTURE_ASPECT_256_135<<24)
 
+#define DRM_MODE_FLAG_DSC_BPC_MASK		(3<<22)
+#define  DRM_MODE_FLAG_DSC_BPC8			(1<<22)
+#define  DRM_MODE_FLAG_DSC_BPC10		(2<<22)
+
 /* DPMS flags */
 /* bit compatible with the xorg definitions. */
 #define DRM_MODE_DPMS_ON	0
