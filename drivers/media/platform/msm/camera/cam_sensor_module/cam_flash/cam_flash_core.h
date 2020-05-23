@@ -13,6 +13,13 @@
 #ifndef _CAM_FLASH_CORE_H_
 #define _CAM_FLASH_CORE_H_
 
+#ifdef CONFIG_MACH_FIH_RC2
+#define FIH_I2C_LED
+#endif
+#ifdef FIH_I2C_LED
+#include <linux/leds-lm3644.h>
+#endif
+
 #include <linux/leds-qpnp-flash.h>
 #include <media/cam_sensor.h>
 #include "cam_flash_dev.h"
