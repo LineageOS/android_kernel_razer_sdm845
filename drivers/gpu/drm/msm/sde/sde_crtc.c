@@ -748,9 +748,8 @@ static bool sde_crtc_mode_fixup(struct drm_crtc *crtc,
 	SDE_DEBUG("\n");
 
 	if ((msm_is_mode_seamless(adjusted_mode) ||
-	     (msm_is_mode_seamless_vrr(adjusted_mode) ||
-	      msm_is_mode_seamless_dyn_clk(adjusted_mode))) &&
-	    (!crtc->enabled)) {
+			msm_is_mode_seamless_vrr(adjusted_mode)) &&
+		(!crtc->enabled)) {
 		SDE_ERROR("crtc state prevents seamless transition\n");
 		return false;
 	}
@@ -3383,6 +3382,7 @@ static int _sde_crtc_flush_event_thread(struct drm_crtc *crtc)
 		SDE_DEBUG("no frames pending\n");
 		return 0;
 	}
+	SDE_ATRACE_BEGIN("crtc_wait_for_frame_done");
 
 	SDE_EVT32(DRMID(crtc), SDE_EVTLOG_FUNC_ENTRY);
 
@@ -3397,6 +3397,7 @@ static int _sde_crtc_flush_event_thread(struct drm_crtc *crtc)
 
 	SDE_EVT32_VERBOSE(DRMID(crtc), SDE_EVTLOG_FUNC_EXIT);
 
+	SDE_ATRACE_END("crtc_wait_for_frame_done");
 	return 0;
 }
 

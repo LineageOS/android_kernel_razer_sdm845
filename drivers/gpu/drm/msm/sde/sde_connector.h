@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018, Razer Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -292,6 +293,11 @@ struct sde_connector_ops {
 	 * Returns: v_front_porch on success error-code on failure
 	 */
 	int (*get_panel_vfp)(void *display, int h_active, int v_active);
+
+	/**
+	 * display_input_boost
+	 */
+	int (*display_input_boost)(void *display, bool enable_boost);
 };
 
 /**
@@ -356,6 +362,7 @@ struct sde_connector_evt {
  * @bl_scale_ad: BL scale value for AD feature
  * @unset_bl_level: BL level that needs to be set later
  * @allow_bl_update: Flag to indicate if BL update is allowed currently or not
+ * @qsync_supported: Connector supports qsync feature
  * @last_cmd_tx_sts: status of the last command transfer
  */
 struct sde_connector {
@@ -403,6 +410,9 @@ struct sde_connector {
 	u32 unset_bl_level;
 	bool allow_bl_update;
 
+	u32 qsync_mode;
+	bool qsync_updated;
+
 	bool last_cmd_tx_sts;
 };
 
@@ -436,6 +446,14 @@ struct sde_connector {
  */
 #define sde_connector_get_encoder(C) \
 	((C) ? to_sde_connector((C))->encoder : NULL)
+
+/**
+ * sde_connector_qsync_updated - indicates if connector updated qsync
+ * @C: Pointer to drm connector structure
+ * Returns: True if qsync is updated; false otherwise
+ */
+#define sde_connector_qsync_updated(C) \
+	((C) ? to_sde_connector((C))->qsync_updated : 0)
 
 /**
  * sde_connector_get_propinfo - get sde connector's property info pointer
