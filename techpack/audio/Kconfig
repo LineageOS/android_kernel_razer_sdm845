@@ -102,6 +102,9 @@ config SND_SOC_SDM670
 config SND_SOC_SDM845
 	tristate "SND_SOC_SDM845"
 
+config SND_SOC_TFA98XX
+	tristate "SND_SOC_TFA98XX"
+
 config SND_SOC_WCD9335
 	tristate "SND_SOC_WCD9335"
 
