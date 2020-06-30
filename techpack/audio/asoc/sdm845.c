@@ -6207,6 +6207,17 @@ static struct snd_soc_dai_link ext_disp_be_dai_link[] = {
 	},
 };
 
+static struct snd_soc_dai_link_component spk_codec[] = {
+	{
+		.name = "tfa98xx.4-0034",
+		.dai_name = "tfa98xx-aif-4-34",
+	},
+	{
+		.name = "tfa98xx.4-0035",
+		.dai_name = "tfa98xx-aif-4-35",
+	},
+};
+
 static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 	{
 		.name = LPASS_BE_PRI_MI2S_RX,
@@ -6323,6 +6334,22 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm_mi2s_be_ops,
 		.ignore_suspend = 1,
+	},
+	{
+		.name = "QUAT_MI2S_RX Hostless",
+		.stream_name = "QUAT_MI2S_RX Hostless",
+		.cpu_dai_name = "QUAT_MI2S_RX_HOSTLESS",
+		.platform_name = "msm-pcm-hostless",
+		.dynamic = 1,
+		.dpcm_playback = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
+			    SND_SOC_DPCM_TRIGGER_POST},
+		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
+		.ignore_suspend = 1,
+		/* this dainlink has playback support */
+		.ignore_pmdown_time = 1,
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
 	},
 };
 
@@ -6741,6 +6768,8 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 	int len_1, len_2, len_3, len_4;
 	int total_links;
 	const struct of_device_id *match;
+	const char *mi2s_port_name = NULL;
+	int mi2s_port_number = QUAT_MI2S;
 
 	match = of_match_node(sdm845_asoc_machine_of_match, dev->of_node);
 	if (!match) {
@@ -6792,6 +6821,30 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		}
 		if (of_property_read_bool(dev->of_node,
 					  "qcom,mi2s-audio-intf")) {
+			if (!(of_property_read_string(dev->of_node, "fih,nxp-tfa98xx", &mi2s_port_name))) {
+				if (!strcmp(mi2s_port_name, "PRIM")) {
+					mi2s_port_number = PRIM_MI2S;
+				} else if (!strcmp(mi2s_port_name, "SEC")) {
+					mi2s_port_number = SEC_MI2S;
+				} else if (!strcmp(mi2s_port_name, "TERT")) {
+					mi2s_port_number = TERT_MI2S;
+				} else if (!strcmp(mi2s_port_name, "QUAT")) {
+					mi2s_port_number = QUAT_MI2S;
+				} else {
+					mi2s_port_number = QUAT_MI2S;
+					pr_info("%s Default set mi2s_port_number to QUAT_MI2S_RX", __func__);
+				}
+				pr_info("%s set nxp-tfa98xx registering to %s",
+					    __func__, msm_mi2s_be_dai_links[mi2s_port_number*2].name);
+
+				if (ARRAY_SIZE(spk_codec) != 0) {
+					msm_mi2s_be_dai_links[mi2s_port_number*2].codec_name = NULL;
+					msm_mi2s_be_dai_links[mi2s_port_number*2].codec_dai_name = NULL;
+					msm_mi2s_be_dai_links[mi2s_port_number*2].codecs = spk_codec;
+					msm_mi2s_be_dai_links[mi2s_port_number*2].num_codecs = ARRAY_SIZE(spk_codec);
+				}
+			}
+
 			memcpy(msm_tavil_snd_card_dai_links + total_links,
 			       msm_mi2s_be_dai_links,
 			       sizeof(msm_mi2s_be_dai_links));
