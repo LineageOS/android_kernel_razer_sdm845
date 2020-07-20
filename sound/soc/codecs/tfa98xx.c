@@ -60,6 +60,7 @@ static int tfa98xx_sync_count;
 static LIST_HEAD(profile_list);        /* list of user selectable profiles */
 static int tfa98xx_mixer_profiles; /* number of user selectable profiles */
 static int tfa98xx_mixer_profile;  /* current mixer profile */
+static int tfa98xx_amp_enable;
 static struct snd_kcontrol_new *tfa98xx_controls;
 static nxpTfaContainer_t *tfa98xx_container;
 
@@ -478,6 +479,10 @@ static ssize_t tfa98xx_dbgfs_start_set(struct file *file,
 		return -EINVAL;
 
 	mutex_lock(&tfa98xx->dsp_lock);
+	/* Make sure amp is turned on */
+	tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_MUTE, 0);
+	tfa98xx_powerdown(tfa98xx->tfa, 0);
+
 	ret = (enum tfa_error)tfa_calibrate(tfa98xx->tfa);
 	if (ret == tfa_error_ok) {
 		cal_profile = tfaContGetCalProfile(tfa98xx->tfa);
@@ -488,8 +493,13 @@ static ssize_t tfa98xx_dbgfs_start_set(struct file *file,
 
 		ret = tfa98xx_tfa_start(tfa98xx, cal_profile, tfa98xx->vstep);
 	}
-	if (ret == tfa_error_ok)
+	if (ret == tfa_error_ok) {
+		/* Disable another amp if only selecting one channel */
+		if ((tfa98xx_amp_enable == 1/*Primary*/&& tfa98xx->tfa->dev_idx == 1/*Secondary*/) ||
+			(tfa98xx_amp_enable == 2/*Secondary*/&& tfa98xx->tfa->dev_idx == 0/*Primary*/))
+			tfa98xx_powerdown(tfa98xx->tfa, 1);
 		tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE, 0);
+	}
 	mutex_unlock(&tfa98xx->dsp_lock);
 
 	if (ret) {
@@ -1113,6 +1123,10 @@ static int tfa98xx_set_vstep(struct snd_kcontrol *kcontrol,
 			/* this is the active profile, program the new vstep */
 			tfa98xx->vstep = new_vstep;
 			mutex_lock(&tfa98xx->dsp_lock);
+			/* Make sure amp is turned on */
+			tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_MUTE, 0);
+			tfa98xx_powerdown(tfa98xx->tfa, 0);
+
 			tfa98xx_dsp_system_stable(tfa98xx->tfa, &ready);
 
 			if (ready) {
@@ -1137,6 +1151,10 @@ static int tfa98xx_set_vstep(struct snd_kcontrol *kcontrol,
 	if (change) {
 		list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
 			mutex_lock(&tfa98xx->dsp_lock);
+			/* Disable another amp if only selecting one channel */
+			if ((tfa98xx_amp_enable == 1/*Primary*/&& tfa98xx->tfa->dev_idx == 1/*Secondary*/) ||
+				(tfa98xx_amp_enable == 2/*Secondary*/&& tfa98xx->tfa->dev_idx == 0/*Primary*/))
+				tfa98xx_powerdown(tfa98xx->tfa, 1);
 			tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE, 0);
 			mutex_unlock(&tfa98xx->dsp_lock);
 		}
@@ -1230,6 +1248,10 @@ static int tfa98xx_set_profile(struct snd_kcontrol *kcontrol,
 
 		/* Don't call tfa_dev_start() if there is no clock. */
 		mutex_lock(&tfa98xx->dsp_lock);
+		/* Make sure amp is turned on */
+		tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_MUTE, 0);
+		tfa98xx_powerdown(tfa98xx->tfa, 0);
+
 		tfa98xx_dsp_system_stable(tfa98xx->tfa, &ready);
 		if (ready) {
 			/* Also re-enables the interrupts */
@@ -1254,6 +1276,10 @@ static int tfa98xx_set_profile(struct snd_kcontrol *kcontrol,
 	if (change) {
 		list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
 			mutex_lock(&tfa98xx->dsp_lock);
+			/* Disable another amp if only selecting one channel */
+			if ((tfa98xx_amp_enable == 1/*Primary*/&& tfa98xx->tfa->dev_idx == 1/*Secondary*/) ||
+				(tfa98xx_amp_enable == 2/*Secondary*/&& tfa98xx->tfa->dev_idx == 0/*Primary*/))
+				tfa98xx_powerdown(tfa98xx->tfa, 1);
 			tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE, 0);
 			mutex_unlock(&tfa98xx->dsp_lock);
 		}
@@ -1403,6 +1429,58 @@ static int tfa98xx_get_cal_ctl(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int tfa98xx_set_amp_enable_ctl(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct tfa98xx *tfa98xx = snd_soc_codec_get_drvdata(codec);
+	int ready = 0;
+
+	pr_debug("%s: tfa98xx_set_amp_enable_ctl = %d", __func__, tfa98xx_amp_enable);
+	tfa98xx_amp_enable = ucontrol->value.integer.value[0];
+	list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
+		mutex_lock(&tfa98xx->dsp_lock);
+		if (!ready)
+			tfa98xx_dsp_system_stable(tfa98xx->tfa, &ready);
+		mutex_unlock(&tfa98xx->dsp_lock);
+	}
+	if (ready) {
+		list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
+			mutex_lock(&tfa98xx->dsp_lock);
+			if ((tfa98xx_amp_enable == 1/*Primary*/&& tfa98xx->tfa->dev_idx == 1/*Secondary*/) ||
+				(tfa98xx_amp_enable == 2/*Secondary*/&& tfa98xx->tfa->dev_idx == 0/*Primary*/))
+				tfa98xx_powerdown(tfa98xx->tfa, 1);
+			else
+				tfa98xx_powerdown(tfa98xx->tfa, 0);
+			tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE, 0);
+			mutex_unlock(&tfa98xx->dsp_lock);
+		}
+	}
+	return 0;
+}
+
+static int tfa98xx_get_amp_enable_ctl(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s: tfa98xx_get_amp_enable_ctl = %d", __func__, tfa98xx_amp_enable);
+	ucontrol->value.integer.value[0] = tfa98xx_amp_enable;
+	return 0;
+}
+
+static const char * const tfa98xx_amp_enable_text[] = {
+	"ALL", "PRIM", "SEC"
+};
+
+static const struct soc_enum tfa98xx_amp_enable_enum[] = {
+	SOC_ENUM_SINGLE_EXT(3, tfa98xx_amp_enable_text),
+};
+
+static struct snd_kcontrol_new tfa98xx_amp_enable_controls[] = {
+	SOC_ENUM_EXT("", tfa98xx_amp_enable_enum[0],
+			tfa98xx_get_amp_enable_ctl,
+			tfa98xx_set_amp_enable_ctl),
+};
+
 static int tfa98xx_create_controls(struct tfa98xx *tfa98xx)
 {
 	int prof, nprof, mix_index = 0;
@@ -1534,6 +1612,16 @@ static int tfa98xx_create_controls(struct tfa98xx *tfa98xx)
 		tfa98xx_controls[mix_index].get = tfa98xx_get_cal_ctl;
 		tfa98xx_controls[mix_index].put = tfa98xx_set_cal_ctl;
 		mix_index++;
+	}
+
+	if (tfa98xx->tfa->cnt->ndev > 1) {
+		name = devm_kzalloc(tfa98xx->codec->dev, MAX_CONTROL_NAME, GFP_KERNEL);
+		if (!name)
+			return -ENOMEM;
+		scnprintf(name, MAX_CONTROL_NAME, "%s AMP Enable", tfa98xx->fw.name);
+		tfa98xx_amp_enable_controls[0].name = name;
+		snd_soc_add_codec_controls(tfa98xx->codec, tfa98xx_amp_enable_controls,
+						ARRAY_SIZE(tfa98xx_amp_enable_controls));
 	}
 
 	return snd_soc_add_codec_controls(tfa98xx->codec,
@@ -2261,6 +2349,9 @@ static void tfa98xx_dsp_init(struct tfa98xx *tfa98xx)
 		return;
 	}
 	mutex_lock(&tfa98xx->dsp_lock);
+	/* Make sure amp is turned on */
+	tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_MUTE, 0);
+	tfa98xx_powerdown(tfa98xx->tfa, 0);
 
 	tfa98xx->dsp_init = TFA98XX_DSP_INIT_PENDING;
 
@@ -2330,6 +2421,10 @@ static void tfa98xx_dsp_init(struct tfa98xx *tfa98xx)
 			tfa98xx_sync_count = 0;
 			list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
 				mutex_lock(&tfa98xx->dsp_lock);
+				/* Disable another amp if only selecting one channel */
+				if ((tfa98xx_amp_enable == 1/*Primary*/&& tfa98xx->tfa->dev_idx == 1/*Secondary*/) ||
+					(tfa98xx_amp_enable == 2/*Secondary*/&& tfa98xx->tfa->dev_idx == 0/*Primary*/))
+					tfa98xx_powerdown(tfa98xx->tfa, 1);
 				tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE, 0);
 
 				/*
@@ -2479,9 +2574,12 @@ static int tfa98xx_startup(struct snd_pcm_substream *substream,
 
 	kfree(basename);
 
-	return snd_pcm_hw_constraint_list(substream->runtime, 0,
-		SNDRV_PCM_HW_PARAM_RATE,
-		&tfa98xx->rate_constraint);
+	//<RC2-149
+	/* The profile only supports 48K SR, it has to be ignored for other usecases.
+	 * Such as voice call 8K or 16K SR.
+	 */
+	return 0;
+	//>RC2-149
 }
 
 static int tfa98xx_set_dai_sysclk(struct snd_soc_dai *codec_dai,
@@ -3047,7 +3145,7 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 			break;
 		case 0x13: /* tfa9912 */
 			pr_info("TFA9912 detected\n");
-			tfa98xx->flags |= TFA98XX_FLAG_MULTI_MIC_INPUTS;
+			/* tfa98xx->flags |= TFA98XX_FLAG_MULTI_MIC_INPUTS; */
 			tfa98xx->flags |= TFA98XX_FLAG_TDM_DEVICE;
 			/* tfa98xx->flags |= TFA98XX_FLAG_TAPDET_AVAILABLE; */
 			break;
