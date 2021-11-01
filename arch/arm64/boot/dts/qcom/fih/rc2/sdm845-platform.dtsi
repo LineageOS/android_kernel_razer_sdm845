@@ -111,16 +111,6 @@
 	pinctrl-1 = <&sdm845_gpio17_sleep &sdm845_gpio18_sleep &sdm845_gpio19_sleep &sdm845_gpio20_sleep>;
 };
 
-&camera_rear_ldo {
-	pinctrl-names = "default";
-	pinctrl-0 = <>;
-};
-
-&camera_ldo {
-	pinctrl-names = "default";
-	pinctrl-0 = <>;
-};
-
 &pm8998_lvs1 {
 	status = "okay";
 	regulator-always-on;
