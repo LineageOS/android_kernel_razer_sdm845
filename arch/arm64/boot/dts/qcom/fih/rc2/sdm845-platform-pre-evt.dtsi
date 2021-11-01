@@ -105,6 +105,36 @@
 	pinctrl-1 = <>;
 };
 
+&mdss_dsi_nt36830_wqhd_dualdsi_cmd {
+	pinctrl-names = "panel_active", "panel_suspend";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
+};
+
+&mdss_dsi_nt36830_wqhd_dualdsi_video {
+	pinctrl-names = "panel_active", "panel_suspend";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
+};
+
+&mdss_dsi_nt36830_wqhd_dualdsi_cmd_30hz {
+	pinctrl-names = "panel_active", "panel_suspend";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
+};
+
+&mdss_dsi_nt36830_wqhd_dualdsi_video_30hz {
+	pinctrl-names = "panel_active", "panel_suspend";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
+};
+
+&mdss_dsi_nt36830_wqhd_dualdsi_cmd_48hz {
+	pinctrl-names = "panel_active", "panel_suspend";
+	pinctrl-0 = <>;
+	pinctrl-1 = <>;
+};
+
 &cam_cci {
 	pinctrl-names = "cam_default", "cam_suspend";
 	pinctrl-0 = <&sdm845_gpio17_active &sdm845_gpio18_active &sdm845_gpio19_active &sdm845_gpio20_active>;
@@ -258,7 +288,7 @@
 
 /* I2C interface */
 &qupv3_se0_i2c {
-	status = "disabled";
+	status = "ok";
 };
 
 &qupv3_se1_i2c {
@@ -280,10 +310,7 @@
 };
 
 &qupv3_se4_i2c {
-	status = "ok";
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&sdm845_gpio89_active &sdm845_gpio90_active>;
-	pinctrl-1 = <&sdm845_gpio89_sleep &sdm845_gpio90_sleep>;
+	status = "disabled";
 };
 
 &qupv3_se5_i2c {
@@ -426,6 +453,8 @@
 		label = "fih_default";
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <
+				&sdm845_gpio2_sleep
+				&sdm845_gpio3_sleep
 				&sdm845_gpio11_sleep
 				&sdm845_gpio35_sleep
 				&sdm845_gpio36_sleep
@@ -437,17 +466,21 @@
 				&sdm845_gpio79_sleep
 				&sdm845_gpio87_sleep
 				&sdm845_gpio88_sleep
+				&sdm845_gpio89_sleep
+				&sdm845_gpio90_sleep
 				&sdm845_gpio91_sleep
 				&sdm845_gpio92_sleep
-				&sdm845_gpio101_sleep
-				&sdm845_gpio102_sleep
+				&sdm845_gpio99_sleep
 				&sdm845_gpio113_sleep
 				&sdm845_gpio114_sleep
-				&sdm845_gpio115_sleep
+				&sdm845_gpio123_sleep
+				&sdm845_gpio124_sleep
 				&sdm845_gpio125_sleep
 				&sdm845_gpio128_sleep
 				&sdm845_gpio129_sleep
 				&sdm845_gpio133_sleep
+				&sdm845_gpio135_sleep
+				&sdm845_gpio136_sleep
 				&pm8998_gpio1_sleep
 				&pm8998_gpio2_sleep
 				&pm8998_gpio5_sleep

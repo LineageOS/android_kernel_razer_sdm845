@@ -72,10 +72,6 @@
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		regulator-enable-ramp-delay = <233>;
-		enable-active-high;
-		gpio = <&tlmm 123 0>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&sdm845_gpio123_default>;
 		vin-supply = <&pm8998_lvs1>;
 	};
 
@@ -113,13 +109,6 @@
 	};
 };
 
-&camera_vana_ldo {
-	compatible = "regulator-fixed";
-	reg = <0x04 0x00>;
-	regulator-name = "camera_vana_ldo";
-	status = "disabled";
-};
-
 &cam_cci {
 	actuator_wide: qcom,actuator@0 {
 		cell-index = <0>;
@@ -130,8 +119,8 @@
 		cam_clk-supply = <&titan_top_gdsc>;
 		regulator-names = "cam_vaf", "cam_clk";
 		rgltr-cntrl-support;
-		rgltr-min-voltage = <3312000 0>;
-		rgltr-max-voltage = <3600000 0>;
+		rgltr-min-voltage = <2864000 0>;
+		rgltr-max-voltage = <2864000 0>;
 		rgltr-load-current = <0 0>;
 
 		gpio-no-mux = <0>;
@@ -143,7 +132,7 @@
 
 		gpio-req-tbl-num = <0>;
 		gpio-req-tbl-flags = <1>;
-		gpio-req-tbl-label = "CAM0_VAF";
+		gpio-req-tbl-label = "CAM_VAF0";
 		status = "ok";
 	};
 
@@ -163,42 +152,14 @@
 		gpio-no-mux = <0>;
 		pinctrl-names = "cam_default", "cam_suspend";
 		pinctrl-0 = <&sdm845_gpio99_active>;
-		pinctrl-1 = <&sdm845_gpio99_default>;
+		pinctrl-1 = <&sdm845_gpio99_sleep>;
 		gpios = <&tlmm 99 0>;
 		gpio-vaf = <0>;
 
 		gpio-req-tbl-num = <0>;
 		gpio-req-tbl-flags = <1>;
-		gpio-req-tbl-label = "CAM0_VAF";
+		gpio-req-tbl-label = "CAM_VAF1";
 		status = "ok";
-	};
-
-	ois_wide: qcom,ois@0 {
-		cell-index = <0>;
-		reg = <0x0>;
-		compatible = "qcom,ois";
-		cci-master = <0>;
-		cam_vaf-supply = <&pmi8998_bob>;
-		cam_vio-supply = <&pm8998_lvs1>;
-		cam_vana-supply = <&pmi8998_bob>;
-		cam_clk-supply = <&titan_top_gdsc>;
-		regulator-names = "cam_vaf", "cam_vio", "cam_vana", "cam_clk";
-		rgltr-cntrl-support;
-		rgltr-min-voltage = <3312000 1800000 3312000 0>;
-		rgltr-max-voltage = <3600000 1800000 3600000 0>;
-		rgltr-load-current = <60000 0 60000 0>;
-		regulator-enable-ramp-delay = <233>;
-		gpio-no-mux = <0>;
-		pinctrl-names = "cam_default", "cam_suspend";
-		pinctrl-0 = <&pm8998_gpio9_active &pm8998_gpio11_active &pm8998_gpio13_active>;
-		pinctrl-1 = <&pm8998_gpio9_suspend &pm8998_gpio11_suspend &pm8998_gpio13_suspend>;
-		gpios = <&pm8998_gpios 9 0>,<&pm8998_gpios 11 0>,<&pm8998_gpios 13 0>;
-		gpio-vaf = <0>;
-		gpio-vio = <1>;
-		gpio-vana = <2>;
-		gpio-req-tbl-num = <0 1 2>;
-		gpio-req-tbl-flags = <1 1 1>;
-		gpio-req-tbl-label = "CAM_VAF", "CAM_VIO", "CAM_VANA";
 	};
 
 	eeprom_front: qcom,eeprom@0 {
@@ -271,11 +232,10 @@
 		csiphy-sd-index = <0>;
 		sensor-position-roll = <90>;
 		sensor-position-pitch = <0>;
-		sensor-position-yaw = <180>;
+		sensor-position-yaw = <0>;
 		led-flash-src = <&led_flash_rear>;
 		actuator-src = <&actuator_wide>;
 		eeprom-src = <&eeprom_wide>;
-		ois-src = <&ois_wide>;
 		cam_vio-supply = <&wide_camera_iovdd>;
 		cam_vana-supply = <&pmi8998_bob>;
 		cam_vdig-supply = <&pm8998_s3>;
@@ -319,13 +279,13 @@
 		csiphy-sd-index = <1>;
 		sensor-position-roll = <90>;
 		sensor-position-pitch = <0>;
-		sensor-position-yaw = <180>;
+		sensor-position-yaw = <0>;
 		led-flash-src = <&led_flash_rear>;
 		actuator-src = <&actuator_tele>;
 		eeprom-src = <&eeprom_wide>;
 		cam_vio-supply = <&tele_camera_iovdd>;
-		cam_vana-supply = <&tele_camera_vdd>; 
-		cam_vdig-supply = <&tele_camera_dvdd>; 
+		cam_vana-supply = <&tele_camera_vdd>;
+		cam_vdig-supply = <&tele_camera_dvdd>;
 
 		cam_clk-supply = <&titan_top_gdsc>;
 		regulator-names = "cam_vio", "cam_vana", "cam_vdig", "cam_clk";

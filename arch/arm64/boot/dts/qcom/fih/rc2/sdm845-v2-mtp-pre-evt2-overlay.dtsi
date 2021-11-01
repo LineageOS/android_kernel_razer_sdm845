@@ -8,7 +8,7 @@
 #include "sdm845-pmic.dtsi"
 
 /* Battery */
-#include "battery.dtsi"
+#include "battery-pre-evt.dtsi"
 
 /* Wireless Charger - IDT,P9221 */
 #include "wireless-charging-P9221.dtsi"

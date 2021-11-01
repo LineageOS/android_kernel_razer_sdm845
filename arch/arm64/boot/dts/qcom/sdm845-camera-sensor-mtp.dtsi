@@ -113,6 +113,7 @@
 		status = "ok";
 	};
 
+/*
 	actuator_rear: qcom,actuator@0 {
 		cell-index = <0>;
 		reg = <0x0>;
@@ -462,4 +463,5 @@
 		clock-cntl-level = "turbo";
 		clock-rates = <24000000>;
 	};
+*/
 };

@@ -1,17 +1,17 @@
 /* Pinctrl */
-#include "sdm845-pinctrl.dtsi"
+#include "sdm845-pinctrl-pre-evt.dtsi"
 #include "pm845-pinctrl.dtsi"
 #include "pmi8998-pinctrl.dtsi"
 #include "pm8005-pinctrl.dtsi"
 
-#include "sdm845-platform.dtsi"
+#include "sdm845-platform-pre-evt.dtsi"
 #include "sdm845-pmic.dtsi"
 
 /* Battery */
-#include "battery.dtsi"
+#include "battery-pre-evt.dtsi"
 
 /* Wireless Charger - IDT,P9221 */
-#include "wireless-charging-P9221.dtsi"
+#include "wireless-charging-P9221-pre-evt.dtsi"
 
 /* Touch */
 #include "touch_synaptics_3708.dtsi"
@@ -35,13 +35,13 @@
 #include "fingerprint-fpc1235.dtsi"
 
 /* Camera */
-#include "sdm845-camera.dtsi"
+#include "sdm845-camera-evt.dtsi"
 
 /* Wifi */
 #include "wifi-module.dtsi"
 
 /* LED */
-#include "led-lp5523.dtsi"
+#include "led-lp5523-pre-evt.dtsi"
 
 /* USB RE-DRIVER */
 #include "redriver-tusb544.dtsi"
