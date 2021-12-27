@@ -46,9 +46,6 @@
 /* USB RE-DRIVER */
 #include "redriver-tusb544.dtsi"
 
-/* Sensor LVS2A power control */
-#include "sensor_power.dtsi"
-
 &pmi8998_lsid1 {
 	qcom,leds@d000 {
 		status = "disabled";
