@@ -82,8 +82,6 @@ static int msm_route_ext_ec_ref;
 static bool is_custom_stereo_on;
 static bool is_ds2_on;
 static bool swap_ch;
-struct kobject *q6adm_obj;
-static bool adm_bypass;
 
 #define WEIGHT_0_DB 0x4000
 /* all the FEs which can support channel mixer */
@@ -967,7 +965,7 @@ static int msm_routing_get_adm_topology(int fedai_id, int session_type,
 	pr_debug("%s: fedai_id %d, session_type %d, be_id %d\n",
 	       __func__, fedai_id, session_type, be_id);
 
-	if (cal_data == NULL || adm_bypass)
+	if (cal_data == NULL)
 		goto done;
 
 	app_type = fe_dai_app_type_cfg[fedai_id][session_type][be_id].app_type;
@@ -19703,32 +19701,6 @@ static void msm_routing_delete_cal_data(void)
 	cal_utils_destroy_cal_types(MAX_ROUTING_CAL_TYPES, &cal_data[0]);
 }
 
-static ssize_t adm_bypass_store(struct kobject *kobj,
-        struct kobj_attribute *attr,
-        const char *buf,
-        size_t count)
-{
-	int enable;
-	sscanf (buf, "%d\n", &enable);
-	if (enable)
-		adm_bypass = true;
-	else
-		adm_bypass = false;
-	return count;
-}
-
-static struct kobj_attribute q6adm_attribute =
-        __ATTR(adm_bypass, 0664, NULL, adm_bypass_store);
-
-static struct attribute *q6adm_attrs[] = {
-	&q6adm_attribute.attr,
-	NULL,
-};
-
-static const struct attribute_group q6adm_group = {
-	.attrs = q6adm_attrs,
-};
-
 static int msm_routing_init_cal_data(void)
 {
 	int ret = 0;
@@ -19762,12 +19734,6 @@ err:
 
 static int __init msm_soc_routing_platform_init(void)
 {
-	int ret;
-	const char *sys_path;
-
-	q6adm_obj = NULL;
-	adm_bypass = false;
-
 	mutex_init(&routing_lock);
 	if (msm_routing_init_cal_data())
 		pr_err("%s: could not init cal data!\n", __func__);
@@ -19778,22 +19744,6 @@ static int __init msm_soc_routing_platform_init(void)
 	memset(&be_dai_name_table, 0, sizeof(be_dai_name_table));
 	memset(&last_be_id_configured, 0, sizeof(last_be_id_configured));
 
-	q6adm_obj = kobject_create_and_add("q6adm", kernel_kobj);
-	if (!q6adm_obj) {
-		pr_err("%s: sysfs create and add failed\n", __func__);
-	} else {
-		sys_path = kobject_get_path(q6adm_obj, GFP_KERNEL);
-		pr_info("%s: q6adm_obj path: %s\n", __func__, sys_path ? sys_path : "N/A");
-		ret = sysfs_create_group(q6adm_obj, &q6adm_group);
-		if (ret) {
-			if (q6adm_obj) {
-				kobject_del(q6adm_obj);
-				q6adm_obj = NULL;
-			}
-			pr_err("%s: sysfs create group failed %d\n", __func__, ret);
-		}
-	}
-
 	return platform_driver_register(&msm_routing_pcm_driver);
 }
 module_init(msm_soc_routing_platform_init);
@@ -19801,13 +19751,6 @@ module_init(msm_soc_routing_platform_init);
 static void __exit msm_soc_routing_platform_exit(void)
 {
 	msm_routing_delete_cal_data();
-
-	if (q6adm_obj) {
-		sysfs_remove_group(q6adm_obj, &q6adm_group);
-		kobject_del(q6adm_obj);
-		q6adm_obj = NULL;
-	}
-
 	memset(&be_dai_name_table, 0, sizeof(be_dai_name_table));
 	mutex_destroy(&routing_lock);
 	platform_driver_unregister(&msm_routing_pcm_driver);
