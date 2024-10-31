@@ -16,6 +16,24 @@
       "message": "push to qcom845 pls",
       "revId": "43efc744aa06fe7fed7a2b6b976443509e81c6da",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8ed46f1a_5fa116f0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 26313
+      },
+      "writtenOn": "2024-10-31T15:21:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "61d68795_c431b6ce",
+      "revId": "43efc744aa06fe7fed7a2b6b976443509e81c6da",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
